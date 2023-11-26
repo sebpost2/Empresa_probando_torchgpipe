@@ -25,14 +25,15 @@ class Experiments:
 
     @staticmethod
     def baseline(devices: List[int]) -> Stuffs:
-        B, C = 6, 72
+        B, C = 5, 70
+        balance = [241]
 
-        model = unet(depth=5, num_convs=B, base_channels=C,
-                     input_channels=3, output_channels=1)
-        device = devices[0]
-        model.to(device)
+        model: nn.Module = unet(depth=5, num_convs=B, base_channels=C,
+                                input_channels=3, output_channels=1)
+        model = cast(nn.Sequential, model)
+        model = GPipe(model, balance, devices=devices, chunks=32)
 
-        return model, B, C, [torch.device(device)]
+        return model, B, C, list(model.devices)
 
     @staticmethod
     def pipeline1(devices: List[int]) -> Stuffs:
@@ -72,7 +73,6 @@ class Experiments:
 
         return model, B, C, list(model.devices)
 
-    @staticmethod
     @staticmethod
     def pipeline4(devices: List[int]) -> Stuffs:
         B, C = 5, 70
