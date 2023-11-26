@@ -1,5 +1,6 @@
 """U-Net Memory Benchmark"""
 import platform
+import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 import click
@@ -9,9 +10,12 @@ import torch.nn.functional as F
 from torch.optim import SGD
 
 import torchgpipe
-from torchgpipe import GPipe
 from torchgpipe.balance import balance_by_time
+from torchgpipe.balance import balance_by_size
+from torchgpipe import GPipe
 from unet import unet
+
+start_time = time.time()
 
 Stuffs = Tuple[nn.Module, int, int, List[torch.device]]  # (model, B, C, devices)
 Experiment = Callable[[List[int]], Stuffs]
@@ -69,6 +73,7 @@ class Experiments:
         return model, B, C, list(model.devices)
 
     @staticmethod
+    @staticmethod
     def pipeline4(devices: List[int]) -> Stuffs:
         B, C = 5, 70
 
@@ -77,25 +82,38 @@ class Experiments:
                                 input_channels=3, output_channels=1)
         model = cast(nn.Sequential, model)
 
-        # Crear un tensor de muestra para el balanceo de tiempo
-        partitions = len(devices)
-        sample = torch.rand(32, 3, 192, 192, device=devices[0])  # Usar el primer dispositivo
-        balance = balance_by_time(partitions, model, sample)
+        # Crear un tensor de muestra para el balanceo por tamaño
+        sample = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
+        balance = balance_by_size(torch.cuda.device_count(), model, sample, chunks=8, param_scale=4.0)
 
-        # Crear el modelo GPipe con el balanceo de tiempo
+        # Crear el modelo GPipe con el balanceo por tamaño
         model = GPipe(model, balance, devices=devices, chunks=32)
 
         return model, B, C, list(model.devices)
 
     @staticmethod
     def pipeline8(devices: List[int]) -> Stuffs:
-        B, C = 48, 160
-        balance = [800, 140, 62, 36, 36, 36, 36, 987]
+        B, C = 5, 70
 
+        # Crear el modelo U-Net
         model: nn.Module = unet(depth=5, num_convs=B, base_channels=C,
                                 input_channels=3, output_channels=1)
         model = cast(nn.Sequential, model)
-        model = GPipe(model, balance, devices=devices, chunks=128)
+
+        # Crear un tensor de muestra para el balanceo por tamaño
+        sample_size = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
+        balance_size = balance_by_size(torch.cuda.device_count(), model, sample_size, chunks=8, param_scale=4.0)
+
+        # Crear un tensor de muestra para el balanceo por tiempo
+        sample_time = torch.empty(32, 3, 192, 192, device=devices[0])  # Adapted size for time-based balancing
+        balance_time = balance_by_time(torch.cuda.device_count(), model, sample_time)
+
+        # Combinar los dos balances utilizando un promedio ponderado (puedes ajustar los pesos)
+        alpha = 0.5  # Puedes ajustar este valor según sea necesario
+        balance = [(1 - alpha) * s + alpha * t for s, t in zip(balance_size, balance_time)]
+
+        # Crear el modelo GPipe con el balanceo combinado
+        model = GPipe(model, balance, devices=devices, chunks=32)
 
         return model, B, C, list(model.devices)
 
@@ -204,6 +222,9 @@ def cli(ctx: click.Context,
         latent_size = max_memory - param_size*param_scale
         click.echo(f'Peak Activation Memory: {latent_size:,} Bytes')
         click.echo(f'Total Memory: {max_memory:,} Bytes')
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        click.echo(f'Tiempo tomado: {elapsed_time:,}')
 
     # MAX MEMORY PER DEVICE =======================================================================
 
