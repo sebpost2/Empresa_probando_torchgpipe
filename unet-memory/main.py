@@ -1,4 +1,5 @@
 """U-Net Memory Benchmark"""
+from torchgpipe.balance import balance_by_time
 import platform
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
