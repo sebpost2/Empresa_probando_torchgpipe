@@ -1,5 +1,4 @@
 """U-Net Memory Benchmark"""
-from torchgpipe.balance import balance_by_time
 import platform
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
@@ -11,6 +10,7 @@ from torch.optim import SGD
 
 import torchgpipe
 from torchgpipe import GPipe
+from torchgpipe.balance import balance_by_time
 from unet import unet
 
 Stuffs = Tuple[nn.Module, int, int, List[torch.device]]  # (model, B, C, devices)
