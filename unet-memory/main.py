@@ -85,8 +85,9 @@ class Experiments:
         model = cast(nn.Sequential, model)
 
         # Crear un tensor de muestra para el balanceo por tamaño
-        sample = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
-        balance = balance_by_size(torch.cuda.device_count(), model, sample, chunks=8, param_scale=4.0)
+        partitions = len(devices)
+        sample = torch.rand(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
+        balance = balance_by_time(partitions, model, sample)
         #balance = [472, 54, 36, 515]
 
         # Crear el modelo GPipe con el balanceo por tamaño
