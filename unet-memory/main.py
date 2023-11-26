@@ -46,9 +46,11 @@ class Experiments:
 
         # Crear un tensor de muestra para el balanceo de tiempo
         partitions = len(devices)
-        sample = torch.rand(128, 3, 224, 224, device=devices[0])  # Usar el primer dispositivo
-        balance = balance_by_time(partitions, model, sample)
+        #sample = torch.rand(128, 3, 224, 224, device=devices[0])  # Usar el primer dispositivo
+        #balance = balance_by_time(partitions, model, sample)
         #balance = [505]
+        sample = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
+        balance = balance_by_size(torch.cuda.device_count(), model, sample, chunks=8, param_scale=4.0)
 
         # Crear el modelo GPipe con el balanceo de tiempo
         model = GPipe(model, balance, devices=devices, chunks=32)
@@ -66,9 +68,11 @@ class Experiments:
 
         # Crear un tensor de muestra para el balanceo de tiempo
         partitions = len(devices)
-        sample = torch.rand(32, 3, 192, 192, device=devices[0])  # Usar el primer dispositivo
-        balance = balance_by_time(partitions, model, sample)
+        #sample = torch.rand(32, 3, 192, 192, device=devices[0])  # Usar el primer dispositivo
+        #balance = balance_by_time(partitions, model, sample)
         #balance=[526, 128]
+        sample = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
+        balance = balance_by_size(torch.cuda.device_count(), model, sample, chunks=8, param_scale=4.0)
 
         # Crear el modelo GPipe con el balanceo de tiempo
         model = GPipe(model, balance, devices=devices, chunks=32)
@@ -86,9 +90,11 @@ class Experiments:
 
         # Crear un tensor de muestra para el balanceo por tamaño
         partitions = len(devices)
-        sample = torch.rand(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
-        balance = balance_by_time(partitions, model, sample)
+        #sample = torch.rand(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
+        #balance = balance_by_time(partitions, model, sample)
         #balance = [472, 54, 36, 515]
+        sample = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
+        balance = balance_by_size(torch.cuda.device_count(), model, sample, chunks=8, param_scale=4.0)
 
         # Crear el modelo GPipe con el balanceo por tamaño
         model = GPipe(model, balance, devices=devices, chunks=32)
@@ -105,18 +111,19 @@ class Experiments:
         model = cast(nn.Sequential, model)
 
         # Crear un tensor de muestra para el balanceo por tamaño
-        #sample_size = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
-        #balance_size = balance_by_size(torch.cuda.device_count(), model, sample_size, chunks=8, param_scale=4.0)
+        sample_size = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
+        balance_size = balance_by_size(torch.cuda.device_count(), model, sample_size, chunks=8, param_scale=4.0)
 
         # Crear un tensor de muestra para el balanceo por tiempo
-        sample_time = torch.empty(32, 3, 192, 192, device=devices[0])  # Adapted size for time-based balancing
-        balance_time = balance_by_time(torch.cuda.device_count(), model, sample_time)
+        #sample_time = torch.empty(32, 3, 192, 192, device=devices[0])  # Adapted size for time-based balancing
+        #balance_time = balance_by_time(torch.cuda.device_count(), model, sample_time)
 
         # Combinar los dos balances utilizando un promedio ponderado (puedes ajustar los pesos)
         alpha = 0.5  # Puedes ajustar este valor según sea necesario
         #balance = [(1 - alpha) * s + alpha * t for s, t in zip(balance_size, balance_time)]
         #balance = [800, 140, 62, 36, 36, 36, 36, 987]
-        balance = balance_time
+        #balance = balance_time
+        balance = balance_size
         
         # Crear el modelo GPipe con el balanceo combinado
         model = GPipe(model, balance, devices=devices, chunks=32)
