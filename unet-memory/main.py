@@ -52,11 +52,11 @@ class Experiments:
 
         # Crear un tensor de muestra para el balanceo de tiempo
         partitions = len(devices)
-        #sample = torch.rand(128, 3, 224, 224, device=devices[0])  # Usar el primer dispositivo
-       # balance = balance_by_time(partitions, model, sample)
+        sample = torch.rand(128, 3, 224, 224, device=devices[0])  # Usar el primer dispositivo
+        balance = balance_by_time(partitions, model, sample)
         #balance = [505]
         #sample = torch.empty(32, 3, 192, 192, device=devices[0])  # Same size as the mini-batch to train
-        balance = balance_by_size(torch.cuda.device_count(), model, sample, chunks=8, param_scale=4.0)
+        #balance = balance_by_size(torch.cuda.device_count(), model, sample, chunks=8, param_scale=4.0)
         #sample = torch.rand(128, 3, 224, 224, device=devices[0])  # Usar el primer dispositivo
         #balance2 = balance_by_time(partitions, model, sample)
        # balance=promedio_ponderado(balance, balance2, 0.75, 0.25)
