@@ -68,8 +68,8 @@ class Experiments:
         balance = balance_by_size(torch.cuda.device_count(), model, sample, chunks=8, param_scale=4.0)
         sample = torch.rand(128, 3, 224, 224, device=devices[0])  # Usar el primer dispositivo
         balance2 = balance_by_time(partitions, model, sample)
-        #balance=promedio_ponderado(balance, balance2, 0.75, 0.25)
-        balance=promedio_ponderado2(balance, balance2, 20, 0.2)
+        balance=promedio_ponderado(balance, balance2, 0.75, 0.25)
+        #balance=promedio_ponderado2(balance, balance2, 20, 0.2)
 
         # Crear el modelo GPipe con el balanceo de tiempo
         model = GPipe(model, balance, devices=devices, chunks=32)
